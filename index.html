@@ -5,47 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FoxWebChat</title>
 <style>
-body { font-family: Arial; background: #f0f2f5; display:flex; justify-content:center; padding-top:50px; }
+body { font-family: Arial; background:#f0f2f5; display:flex; justify-content:center; padding-top:50px;}
 #chat { width:400px; max-width:90%; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
 #messages { height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px; background:#f9f9f9;}
 .message { margin-bottom:5px;}
-input[type="text"] { width:calc(100% - 70px); padding:8px; border-radius:4px; border:1px solid #ccc;}
-button { padding:8px 12px; border-radius:4px; border:none; background-color:#4CAF50; color:white; cursor:pointer;}
+button { padding:5px 10px; margin-left:5px; border-radius:4px; border:none; background-color:#4CAF50; color:white; cursor:pointer;}
 button:hover { background-color:#45a049;}
-#namePrompt { margin-bottom:10px; }
+input[type="text"] { width:calc(100% - 80px); padding:8px; border-radius:4px; border:1px solid #ccc;}
+#namePrompt { margin-bottom:10px;}
+#reportPrompt { margin-top:5px;}
+.reportButton { background-color:#f44336; }
+.reportButton:hover { background-color:#d32f2f; }
 </style>
 </head>
 <body>
 
 <div id="chat">
-  <h2>FoxWebChat</h2>
+<h2>FoxWebChat</h2>
 
-  <div id="namePrompt">
-    <input type="text" id="usernameInput" placeholder="Dein Name">
-    <button id="nameBtn">Name setzen</button>
-  </div>
+<div id="namePrompt">
+<input type="text" id="usernameInput" placeholder="Dein Name">
+<button id="nameBtn">Name setzen</button>
+</div>
 
-  <div id="messages"></div>
+<div id="messages"></div>
 
-  <input type="text" id="input" placeholder="Schreib was..." disabled>
-  <button id="sendBtn" disabled>Senden</button>
+<input type="text" id="input" placeholder="Schreib was..." disabled>
+<button id="sendBtn" disabled>Senden</button>
 </div>
 
 <!-- FIREBASE_START -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBMTDTFJ9DXOlABwhnJGZ-YxwVKJneazY4",
-    authDomain: "foxwebchat.firebaseapp.com",
-    databaseURL: "https://foxwebchat-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "foxwebchat",
-    storageBucket: "foxwebchat.firebasestorage.app",
-    messagingSenderId: "1083591512876",
-    appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
-  };
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const firebaseConfig = {
+  apiKey: "AIzaSyBMTDTFJ9DXOlABwhnJGZ-YxwVKJneazY4",
+  authDomain: "foxwebchat.firebaseapp.com",
+  databaseURL: "https://foxwebchat-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "foxwebchat",
+  storageBucket: "foxwebchat.firebasestorage.app",
+  messagingSenderId: "1083591512876",
+  appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
+};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 </script>
 <!-- FIREBASE_END -->
 
@@ -70,12 +73,17 @@ nameBtn.addEventListener('click', () => {
 });
 
 // Nachricht senden
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
+
 function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
-  db.ref('messages').push({
-    text: text,
+
+  const newMsgRef = db.ref('messages').push();
+  newMsgRef.set({
     user: username,
+    text: text,
     time: Date.now()
   });
   input.value = '';
@@ -86,16 +94,36 @@ db.ref('messages').on('child_added', snapshot => {
   const data = snapshot.val();
   const msgDiv = document.createElement('div');
   msgDiv.className = 'message';
-  msgDiv.textContent = data.user + ": " + data.text;
+  msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
+  
+  // Report Button
+  const reportBtn = document.createElement('button');
+  reportBtn.textContent = "Report";
+  reportBtn.className = 'reportButton';
+  reportBtn.onclick = () => reportMessage(snapshot.key, data.user, data.text);
+  msgDiv.appendChild(reportBtn);
+
   messages.appendChild(msgDiv);
   messages.scrollTop = messages.scrollHeight;
 });
 
-// Enter-Taste
-input.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') sendMessage();
-});
-</script>
+// Report-Funktion
+function reportMessage(msgId, reportedUser, reportedText) {
+  const reason = prompt(`Warum willst du diese Nachricht von ${reportedUser} reporten?`);
+  if(!reason) return;
+  db.ref('reports').push({
+    reportedUser,
+    reportedText,
+    reason,
+    time: Date.now()
+  });
+  alert("Report wurde gesendet!");
+}
 
+// Optional: Admin-Reports in Firebase prüfen
+// db.ref('reports').on('child_added', snapshot => {
+//   console.log("Report:", snapshot.val());
+// });
+</script>
 </body>
 </html>

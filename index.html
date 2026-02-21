@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let username = "";
   let darkMode = false;
 
-  // Dark/Light Mode Toggle
+  // Dark/Light Mode
   modeBtn.addEventListener('click', () => {
     darkMode = !darkMode;
     document.body.style.background = darkMode ? 'var(--bg-dark)' : 'var(--bg-light)';
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
   });
 
-  // Name setzen und Join-Nachricht senden
+  // Name setzen + join Nachricht
   nameBtn.addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if(!name) return alert("Bitte gib einen Namen ein!");
@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.disabled = false;
     sendBtn.disabled = false;
 
+    // System Join Message
     db.ref('messages').push({
       user: 'System',
       text: `${username} joined`,
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Senden
   sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
+  input.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
 
   function sendMessage() {
     const text = input.value.trim();
@@ -113,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.value = '';
   }
 
-  // Live-Chat Updates
+  // Live Chat
   db.ref('messages').on('child_added', snapshot => {
     const data = snapshot.val();
     const msgDiv = document.createElement('div');

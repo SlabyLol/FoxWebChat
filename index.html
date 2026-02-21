@@ -23,7 +23,7 @@ button { padding:5px 10px; margin-left:5px; border-radius:4px; border:none; curs
 .reportButton { background-color:#f44336; color:white;}
 .reportButton:hover { background-color:#d32f2f;}
 #modeBtn { margin-bottom:10px; background:#555; color:white;}
-input[type="text"], input[type="password"] { width:calc(100% - 90px); padding:8px; border-radius:4px; border:1px solid #ccc; margin-bottom:5px;}
+input[type="text"] { width:calc(100% - 90px); padding:8px; border-radius:4px; border:1px solid #ccc; margin-bottom:5px;}
 #emojiPicker { margin-bottom:10px; }
 .emojiBtn { cursor:pointer; border:none; background:none; font-size:20px; margin:2px;}
 #adminPanel { display:none; margin-top:10px; border:1px solid #888; padding:10px; border-radius:5px; max-height:200px; overflow-y:auto; background:#eee;}
@@ -52,7 +52,6 @@ input[type="text"], input[type="password"] { width:calc(100% - 90px); padding:8p
 <div id="adminPanel"></div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
 <script>
@@ -81,10 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminPanel = document.getElementById('adminPanel');
 
   let username = "";
-  let darkMode = false;
   let isAdmin = false;
+  let darkMode = false;
 
-  // Emojis hinzufügen
+  // Emoji-Picker
   const emojis = ['😄','😂','😍','👍','🙏','😎','🤔','😢','🎉','🔥'];
   emojis.forEach(e => {
     const btn = document.createElement('button');
@@ -103,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
   });
 
-  // Name setzen + Join Message
+  // Name setzen
   nameBtn.addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if(!name) return alert("Bitte gib einen Namen ein!");
@@ -113,23 +112,23 @@ document.addEventListener('DOMContentLoaded', () => {
     input.disabled = false;
     sendBtn.disabled = false;
 
-    if(username === 'AdminJs93€=lK') {
+    let sysMsg = `${username} joined`;
+    let adminFlag = false;
+
+    if(username === "AdminJs93€=lK") {
+      sysMsg = "ADMIN JOINED !BEWARE!";
+      adminFlag = true;
       isAdmin = true;
-      db.ref('messages').push({
-        user: 'System',
-        text: 'ADMIN JOINED !BEWARE!',
-        time: Date.now(),
-        admin:true
-      });
-      adminPanel.style.display = 'block';
-    } else {
-      db.ref('messages').push({
-        user: 'System',
-        text: `${username} joined`,
-        time: Date.now(),
-        admin:false
-      });
+      adminPanel.style.display = "block";
+      loadAdminReports();
     }
+
+    db.ref('messages').push({
+      user: 'System',
+      text: sysMsg,
+      time: Date.now(),
+      admin: adminFlag
+    });
   });
 
   // Senden
@@ -150,17 +149,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Live Chat
   db.ref('messages').on('child_added', snapshot => {
     const data = snapshot.val();
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message';
-    if(data.admin) msgDiv.className += ' systemMessage';
-    msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
+    const div = document.createElement('div');
+    div.className = 'message';
+    if(data.admin) div.className += ' systemMessage';
+    div.innerHTML = `<b>${data.user}:</b> ${data.text} `;
 
     if(data.user !== 'System') {
       const reportBtn = document.createElement('button');
       reportBtn.textContent = "Report";
       reportBtn.className = 'reportButton';
       reportBtn.addEventListener('click', () => {
-        const reason = prompt(`Warum willst du diese Nachricht von ${data.user} reporten?`);
+        const reason = prompt(`Grund für Report von ${data.user}:`);
         if(!reason) return;
         db.ref('reports').push({
           reportedUser: data.user,
@@ -168,24 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
           reason,
           time: Date.now()
         });
-        alert("Report wurde gesendet!");
+        alert("Report gesendet!");
       });
-      msgDiv.appendChild(reportBtn);
+      div.appendChild(reportBtn);
     }
 
-    messages.appendChild(msgDiv);
+    messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
   });
 
-  // Admin Panel Live Reports
-  if(isAdmin) {
+  // Admin Panel
+  function loadAdminReports() {
     db.ref('reports').on('child_added', snapshot => {
       const data = snapshot.val();
       const div = document.createElement('div');
       div.className = 'reportItem';
       div.innerHTML = `<b>${data.reportedUser}:</b> ${data.reportedText} <br> Grund: ${data.reason} <br> <button class="resolveBtn">Gelöst</button>`;
-      const btn = div.querySelector('.resolveBtn');
-      btn.addEventListener('click', () => {
+      div.querySelector('.resolveBtn').addEventListener('click', () => {
         snapshot.ref.remove();
         div.remove();
       });

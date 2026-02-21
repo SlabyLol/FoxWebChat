@@ -23,24 +23,21 @@
   </div>
 
   <!-- FIREBASE_START -->
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBMTDTFJ9DXOlABwhnJGZ-YxwVKJneazY4",
-  authDomain: "foxwebchat.firebaseapp.com",
-  databaseURL: "https://foxwebchat-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "foxwebchat",
-  storageBucket: "foxwebchat.firebasestorage.app",
-  messagingSenderId: "1083591512876",
-  appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBMTDTFJ9DXOlABwhnJGZ-YxwVKJneazY4",
+      authDomain: "foxwebchat.firebaseapp.com",
+      databaseURL: "https://foxwebchat-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "foxwebchat",
+      storageBucket: "foxwebchat.firebasestorage.app",
+      messagingSenderId: "1083591512876",
+      appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
   <!-- FIREBASE_END -->
 
   <script>

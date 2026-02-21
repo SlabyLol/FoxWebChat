@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FoxWebChat</title>
+<title>FoxWebChat + Admin</title>
 <style>
 :root {
   --bg-light: #f0f2f5;
@@ -14,15 +14,22 @@
   --text-dark: #fff;
 }
 body { font-family: Arial; background: var(--bg-light); display:flex; justify-content:center; padding-top:20px; transition: background 0.3s;}
-#chat { width:500px; max-width:95%; height:600px; background: var(--chat-light); padding:20px; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.2); display:flex; flex-direction:column; transition: background 0.3s, color 0.3s;}
+#chat { width:550px; max-width:95%; height:700px; background: var(--chat-light); padding:20px; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.2); display:flex; flex-direction:column; transition: background 0.3s, color 0.3s;}
 #messages { flex:1; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px; background:#f9f9f9; border-radius:5px;}
 .message { margin-bottom:8px;}
+.systemMessage { color:red; font-weight:bold; }
 button { padding:5px 10px; margin-left:5px; border-radius:4px; border:none; cursor:pointer;}
 #namePrompt { margin-bottom:10px;}
 .reportButton { background-color:#f44336; color:white;}
 .reportButton:hover { background-color:#d32f2f;}
 #modeBtn { margin-bottom:10px; background:#555; color:white;}
-input[type="text"] { width:calc(100% - 90px); padding:8px; border-radius:4px; border:1px solid #ccc;}
+input[type="text"], input[type="password"] { width:calc(100% - 90px); padding:8px; border-radius:4px; border:1px solid #ccc; margin-bottom:5px;}
+#emojiPicker { margin-bottom:10px; }
+.emojiBtn { cursor:pointer; border:none; background:none; font-size:20px; margin:2px;}
+#adminPanel { display:none; margin-top:10px; border:1px solid #888; padding:10px; border-radius:5px; max-height:200px; overflow-y:auto; background:#eee;}
+.reportItem { margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:5px;}
+.resolveBtn { background:#4CAF50; color:white; border:none; padding:3px 6px; cursor:pointer; margin-left:5px;}
+.resolveBtn:hover { background:#45a049; }
 </style>
 </head>
 <body>
@@ -38,11 +45,14 @@ input[type="text"] { width:calc(100% - 90px); padding:8px; border-radius:4px; bo
 
 <div id="messages"></div>
 
+<div id="emojiPicker"></div>
 <input type="text" id="input" placeholder="Schreib was..." disabled>
 <button id="sendBtn" disabled>Senden</button>
+
+<div id="adminPanel"></div>
 </div>
 
-<!-- FIREBASE_START -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
 <script>
@@ -55,10 +65,9 @@ const firebaseConfig = {
   messagingSenderId: "1083591512876",
   appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
 };
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 </script>
-<!-- FIREBASE_END -->
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -68,20 +77,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const usernameInput = document.getElementById('usernameInput');
   const nameBtn = document.getElementById('nameBtn');
   const modeBtn = document.getElementById('modeBtn');
+  const emojiPicker = document.getElementById('emojiPicker');
+  const adminPanel = document.getElementById('adminPanel');
 
   let username = "";
   let darkMode = false;
+  let isAdmin = false;
+
+  // Emojis hinzufügen
+  const emojis = ['😄','😂','😍','👍','🙏','😎','🤔','😢','🎉','🔥'];
+  emojis.forEach(e => {
+    const btn = document.createElement('button');
+    btn.textContent = e;
+    btn.className = 'emojiBtn';
+    btn.addEventListener('click', () => input.value += e);
+    emojiPicker.appendChild(btn);
+  });
 
   // Dark/Light Mode
   modeBtn.addEventListener('click', () => {
     darkMode = !darkMode;
-    document.body.style.background = darkMode ? 'var(--bg-dark)' : 'var(--bg-light)';
-    document.getElementById('chat').style.background = darkMode ? 'var(--chat-dark)' : 'var(--chat-light)';
-    document.getElementById('chat').style.color = darkMode ? 'var(--text-dark)' : 'var(--text-light)';
+    document.body.style.background = darkMode ? '#181818' : '#f0f2f5';
+    document.getElementById('chat').style.background = darkMode ? '#242424' : '#fff';
+    document.getElementById('chat').style.color = darkMode ? '#fff' : '#000';
     modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
   });
 
-  // Name setzen + join Nachricht
+  // Name setzen + Join Message
   nameBtn.addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if(!name) return alert("Bitte gib einen Namen ein!");
@@ -91,17 +113,28 @@ document.addEventListener('DOMContentLoaded', () => {
     input.disabled = false;
     sendBtn.disabled = false;
 
-    // System Join Message
-    db.ref('messages').push({
-      user: 'System',
-      text: `${username} joined`,
-      time: Date.now()
-    });
+    if(username === 'AdminJs93€=lK') {
+      isAdmin = true;
+      db.ref('messages').push({
+        user: 'System',
+        text: 'ADMIN JOINED !BEWARE!',
+        time: Date.now(),
+        admin:true
+      });
+      adminPanel.style.display = 'block';
+    } else {
+      db.ref('messages').push({
+        user: 'System',
+        text: `${username} joined`,
+        time: Date.now(),
+        admin:false
+      });
+    }
   });
 
   // Senden
   sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keypress', e => { if(e.key === 'Enter') sendMessage(); });
+  input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
 
   function sendMessage() {
     const text = input.value.trim();
@@ -119,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = snapshot.val();
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message';
+    if(data.admin) msgDiv.className += ' systemMessage';
     msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
 
     if(data.user !== 'System') {
@@ -142,6 +176,22 @@ document.addEventListener('DOMContentLoaded', () => {
     messages.appendChild(msgDiv);
     messages.scrollTop = messages.scrollHeight;
   });
+
+  // Admin Panel Live Reports
+  if(isAdmin) {
+    db.ref('reports').on('child_added', snapshot => {
+      const data = snapshot.val();
+      const div = document.createElement('div');
+      div.className = 'reportItem';
+      div.innerHTML = `<b>${data.reportedUser}:</b> ${data.reportedText} <br> Grund: ${data.reason} <br> <button class="resolveBtn">Gelöst</button>`;
+      const btn = div.querySelector('.resolveBtn');
+      btn.addEventListener('click', () => {
+        snapshot.ref.remove();
+        div.remove();
+      });
+      adminPanel.appendChild(div);
+    });
+  }
 });
 </script>
 </body>

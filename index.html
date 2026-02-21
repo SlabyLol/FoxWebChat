@@ -5,24 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FoxWebChat</title>
 <style>
-body { font-family: Arial; background:#f0f2f5; display:flex; justify-content:center; padding-top:50px;}
-#chat { width:400px; max-width:90%; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
-#messages { height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px; background:#f9f9f9;}
-.message { margin-bottom:5px;}
-button { padding:5px 10px; margin-left:5px; border-radius:4px; border:none; background-color:#4CAF50; color:white; cursor:pointer;}
-button:hover { background-color:#45a049;}
-input[type="text"] { width:calc(100% - 80px); padding:8px; border-radius:4px; border:1px solid #ccc;}
+:root {
+  --bg-light: #f0f2f5;
+  --chat-light: #fff;
+  --text-light: #000;
+  --bg-dark: #181818;
+  --chat-dark: #242424;
+  --text-dark: #fff;
+}
+body { font-family: Arial; background: var(--bg-light); display:flex; justify-content:center; padding-top:20px; transition: background 0.3s;}
+#chat { width:500px; max-width:95%; height:600px; background: var(--chat-light); padding:20px; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.2); display:flex; flex-direction:column; transition: background 0.3s, color 0.3s;}
+#messages { flex:1; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px; background:#f9f9f9; border-radius:5px;}
+.message { margin-bottom:8px;}
+button { padding:5px 10px; margin-left:5px; border-radius:4px; border:none; cursor:pointer;}
 #namePrompt { margin-bottom:10px;}
-#reportPrompt { margin-top:5px;}
-.reportButton { background-color:#f44336; }
-.reportButton:hover { background-color:#d32f2f; }
+.reportButton { background-color:#f44336; color:white;}
+.reportButton:hover { background-color:#d32f2f;}
+#modeBtn { margin-bottom:10px; background:#555; color:white;}
+input[type="text"] { width:calc(100% - 90px); padding:8px; border-radius:4px; border:1px solid #ccc;}
 </style>
 </head>
 <body>
 
 <div id="chat">
 <h2>FoxWebChat</h2>
-
+<button id="modeBtn">Dark Mode</button>
 <div id="namePrompt">
 <input type="text" id="usernameInput" placeholder="Dein Name">
 <button id="nameBtn">Name setzen</button>
@@ -58,8 +65,19 @@ const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 const usernameInput = document.getElementById('usernameInput');
 const nameBtn = document.getElementById('nameBtn');
+const modeBtn = document.getElementById('modeBtn');
 
 let username = "";
+let darkMode = false;
+
+// Dark/Light Mode
+modeBtn.addEventListener('click', () => {
+  darkMode = !darkMode;
+  document.body.style.background = darkMode ? 'var(--bg-dark)' : 'var(--bg-light)';
+  document.getElementById('chat').style.background = darkMode ? 'var(--chat-dark)' : 'var(--chat-light)';
+  document.getElementById('chat').style.color = darkMode ? 'var(--text-dark)' : 'var(--text-light)';
+  modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
+});
 
 // Name setzen
 nameBtn.addEventListener('click', () => {
@@ -70,6 +88,13 @@ nameBtn.addEventListener('click', () => {
   nameBtn.disabled = true;
   input.disabled = false;
   sendBtn.disabled = false;
+
+  // Join Nachricht
+  db.ref('messages').push({
+    user: 'System',
+    text: `${username} joined`,
+    time: Date.now()
+  });
 });
 
 // Nachricht senden
@@ -77,11 +102,11 @@ sendBtn.addEventListener('click', sendMessage);
 input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
 
 function sendMessage() {
-  const text = input.value.trim();
+  let text = input.value.trim();
   if (!text) return;
 
-  const newMsgRef = db.ref('messages').push();
-  newMsgRef.set({
+  // Emojis sind einfach als Unicode eingeben (z.B. 😄)
+  db.ref('messages').push({
     user: username,
     text: text,
     time: Date.now()
@@ -95,13 +120,15 @@ db.ref('messages').on('child_added', snapshot => {
   const msgDiv = document.createElement('div');
   msgDiv.className = 'message';
   msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
-  
-  // Report Button
-  const reportBtn = document.createElement('button');
-  reportBtn.textContent = "Report";
-  reportBtn.className = 'reportButton';
-  reportBtn.onclick = () => reportMessage(snapshot.key, data.user, data.text);
-  msgDiv.appendChild(reportBtn);
+
+  // Report Button nur bei echten User-Nachrichten
+  if(data.user !== 'System') {
+    const reportBtn = document.createElement('button');
+    reportBtn.textContent = "Report";
+    reportBtn.className = 'reportButton';
+    reportBtn.onclick = () => reportMessage(snapshot.key, data.user, data.text);
+    msgDiv.appendChild(reportBtn);
+  }
 
   messages.appendChild(msgDiv);
   messages.scrollTop = messages.scrollHeight;
@@ -119,11 +146,6 @@ function reportMessage(msgId, reportedUser, reportedText) {
   });
   alert("Report wurde gesendet!");
 }
-
-// Optional: Admin-Reports in Firebase prüfen
-// db.ref('reports').on('child_added', snapshot => {
-//   console.log("Report:", snapshot.val());
-// });
 </script>
 </body>
 </html>

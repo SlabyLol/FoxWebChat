@@ -30,6 +30,7 @@ input[type="text"] { width:calc(100% - 90px); padding:8px; border-radius:4px; bo
 <div id="chat">
 <h2>FoxWebChat</h2>
 <button id="modeBtn">Dark Mode</button>
+
 <div id="namePrompt">
 <input type="text" id="usernameInput" placeholder="Dein Name">
 <button id="nameBtn">Name setzen</button>
@@ -60,92 +61,87 @@ const db = firebase.database();
 <!-- FIREBASE_END -->
 
 <script>
-const messages = document.getElementById('messages');
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('sendBtn');
-const usernameInput = document.getElementById('usernameInput');
-const nameBtn = document.getElementById('nameBtn');
-const modeBtn = document.getElementById('modeBtn');
+document.addEventListener('DOMContentLoaded', () => {
+  const messages = document.getElementById('messages');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const usernameInput = document.getElementById('usernameInput');
+  const nameBtn = document.getElementById('nameBtn');
+  const modeBtn = document.getElementById('modeBtn');
 
-let username = "";
-let darkMode = false;
+  let username = "";
+  let darkMode = false;
 
-// Dark/Light Mode
-modeBtn.addEventListener('click', () => {
-  darkMode = !darkMode;
-  document.body.style.background = darkMode ? 'var(--bg-dark)' : 'var(--bg-light)';
-  document.getElementById('chat').style.background = darkMode ? 'var(--chat-dark)' : 'var(--chat-light)';
-  document.getElementById('chat').style.color = darkMode ? 'var(--text-dark)' : 'var(--text-light)';
-  modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
-});
-
-// Name setzen
-nameBtn.addEventListener('click', () => {
-  const name = usernameInput.value.trim();
-  if(!name) return alert("Bitte gib einen Namen ein!");
-  username = name;
-  usernameInput.disabled = true;
-  nameBtn.disabled = true;
-  input.disabled = false;
-  sendBtn.disabled = false;
-
-  // Join Nachricht
-  db.ref('messages').push({
-    user: 'System',
-    text: `${username} joined`,
-    time: Date.now()
+  // Dark/Light Mode Toggle
+  modeBtn.addEventListener('click', () => {
+    darkMode = !darkMode;
+    document.body.style.background = darkMode ? 'var(--bg-dark)' : 'var(--bg-light)';
+    document.getElementById('chat').style.background = darkMode ? 'var(--chat-dark)' : 'var(--chat-light)';
+    document.getElementById('chat').style.color = darkMode ? 'var(--text-dark)' : 'var(--text-light)';
+    modeBtn.textContent = darkMode ? "Light Mode" : "Dark Mode";
   });
-});
 
-// Nachricht senden
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
+  // Name setzen und Join-Nachricht senden
+  nameBtn.addEventListener('click', () => {
+    const name = usernameInput.value.trim();
+    if(!name) return alert("Bitte gib einen Namen ein!");
+    username = name;
+    usernameInput.disabled = true;
+    nameBtn.disabled = true;
+    input.disabled = false;
+    sendBtn.disabled = false;
 
-function sendMessage() {
-  let text = input.value.trim();
-  if (!text) return;
-
-  // Emojis sind einfach als Unicode eingeben (z.B. 😄)
-  db.ref('messages').push({
-    user: username,
-    text: text,
-    time: Date.now()
+    db.ref('messages').push({
+      user: 'System',
+      text: `${username} joined`,
+      time: Date.now()
+    });
   });
-  input.value = '';
-}
 
-// Nachrichten live anzeigen
-db.ref('messages').on('child_added', snapshot => {
-  const data = snapshot.val();
-  const msgDiv = document.createElement('div');
-  msgDiv.className = 'message';
-  msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
+  // Senden
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
 
-  // Report Button nur bei echten User-Nachrichten
-  if(data.user !== 'System') {
-    const reportBtn = document.createElement('button');
-    reportBtn.textContent = "Report";
-    reportBtn.className = 'reportButton';
-    reportBtn.onclick = () => reportMessage(snapshot.key, data.user, data.text);
-    msgDiv.appendChild(reportBtn);
+  function sendMessage() {
+    const text = input.value.trim();
+    if(!text) return;
+    db.ref('messages').push({
+      user: username,
+      text: text,
+      time: Date.now()
+    });
+    input.value = '';
   }
 
-  messages.appendChild(msgDiv);
-  messages.scrollTop = messages.scrollHeight;
-});
+  // Live-Chat Updates
+  db.ref('messages').on('child_added', snapshot => {
+    const data = snapshot.val();
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message';
+    msgDiv.innerHTML = `<b>${data.user}:</b> ${data.text} `;
 
-// Report-Funktion
-function reportMessage(msgId, reportedUser, reportedText) {
-  const reason = prompt(`Warum willst du diese Nachricht von ${reportedUser} reporten?`);
-  if(!reason) return;
-  db.ref('reports').push({
-    reportedUser,
-    reportedText,
-    reason,
-    time: Date.now()
+    if(data.user !== 'System') {
+      const reportBtn = document.createElement('button');
+      reportBtn.textContent = "Report";
+      reportBtn.className = 'reportButton';
+      reportBtn.addEventListener('click', () => {
+        const reason = prompt(`Warum willst du diese Nachricht von ${data.user} reporten?`);
+        if(!reason) return;
+        db.ref('reports').push({
+          reportedUser: data.user,
+          reportedText: data.text,
+          reason,
+          time: Date.now()
+        });
+        alert("Report wurde gesendet!");
+      });
+      msgDiv.appendChild(reportBtn);
+    }
+
+    messages.appendChild(msgDiv);
+    messages.scrollTop = messages.scrollHeight;
   });
-  alert("Report wurde gesendet!");
-}
+});
 </script>
 </body>
 </html>

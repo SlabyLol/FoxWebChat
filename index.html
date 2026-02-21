@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoxWebChat</title>
+  <style>
+    body { font-family: Arial; background: #f0f2f5; display:flex; justify-content:center; padding-top:50px; }
+    #chat { width:400px; max-width:90%; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
+    #messages { height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px; background:#f9f9f9;}
+    .message { margin-bottom:5px;}
+    input[type="text"] { width:calc(100% - 70px); padding:8px; border-radius:4px; border:1px solid #ccc;}
+    button { padding:8px 12px; border-radius:4px; border:none; background-color:#4CAF50; color:white; cursor:pointer;}
+    button:hover { background-color:#45a049;}
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <h2>FoxWebChat</h2>
+    <div id="messages"></div>
+    <input type="text" id="input" placeholder="Schreib was...">
+    <button onclick="sendMessage()">Senden</button>
+  </div>
+
+  <!-- FIREBASE_START -->
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBMTDTFJ9DXOlABwhnJGZ-YxwVKJneazY4",
+  authDomain: "foxwebchat.firebaseapp.com",
+  databaseURL: "https://foxwebchat-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "foxwebchat",
+  storageBucket: "foxwebchat.firebasestorage.app",
+  messagingSenderId: "1083591512876",
+  appId: "1:1083591512876:web:d9d1793855780d3d0fd289"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+  <!-- FIREBASE_END -->
+
+  <script>
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      db.ref('messages').push({ text: text, time: Date.now() });
+      input.value = '';
+    }
+
+    db.ref('messages').on('child_added', snapshot => {
+      const data = snapshot.val();
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'message';
+      msgDiv.textContent = data.text;
+      messages.appendChild(msgDiv);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    input.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
